@@ -45,6 +45,7 @@ public class CracGenerator {
             crac.newInjectionRangeAction()
                 .withId("RD_" + ct.getGeneratorId())
                 .withNetworkElementAndKey(1.0, generator.getId())
+                .withInitialSetpoint(generator.getTargetP())
                 .newRange().withMin(generator.getMinP()).withMax(generator.getMaxP()).add()
                 .newOnInstantUsageRule().withInstant(PREVENTIVE_INSTANT_ID).add()
                 .add();
