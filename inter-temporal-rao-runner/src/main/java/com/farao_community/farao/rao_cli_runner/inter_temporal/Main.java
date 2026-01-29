@@ -121,7 +121,7 @@ public class Main {
             preventiveRangeActions.forEach(rangeAction -> {
                 double optimizedSetpoint = result.getIndividualRaoResult(offsetDateTime).getOptimizedSetPointOnState(raoInput.getRaoInputs().getData(offsetDateTime).get().getCrac().getPreventiveState(), rangeAction);
                 if (rangeAction instanceof InjectionRangeAction) {
-                    applyRedispatchingAction((InjectionRangeAction) rangeAction, optimizedSetpoint, modifiedNetwork, initialNetwork);
+                    applyRedispatchingAction((InjectionRangeAction) rangeAction, optimizedSetpoint, initialNetwork);
                 } else {
                     rangeAction.apply(initialNetwork, optimizedSetpoint);
                 }
@@ -148,7 +148,7 @@ public class Main {
         zipOutputStream.close();
     }
 
-    private static void applyRedispatchingAction(InjectionRangeAction injectionRangeAction, double optimizedSetpoint, Network modifiedNetwork, Network initialNetwork) {
+    private static void applyRedispatchingAction(InjectionRangeAction injectionRangeAction, double optimizedSetpoint, Network initialNetwork) {
         double initialSetpoint = injectionRangeAction.getInitialSetpoint();
         for (NetworkElement networkElement : injectionRangeAction.getNetworkElements()) {
             Generator generator = initialNetwork.getGenerator(networkElement.getId());
@@ -180,6 +180,7 @@ public class Main {
         Options options = buildCommandLineOptions();
 
         CommandLineParser parser = new MyCommandLineParser(HELP_OPT);
+        // TODO replace with org.apache.commons.cli.help.HelpFormatter
         HelpFormatter formatter = new HelpFormatter();
         CommandLine cmd = null;
 
