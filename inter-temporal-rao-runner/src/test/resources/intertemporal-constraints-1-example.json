@@ -1,0 +1,24 @@
+{
+  "type": "OpenRAO Intertemporal Constraints",
+  "version": "1.0",
+  "generatorConstraints": [
+    {
+      "generatorId": "RO_RA_00001_BBE1AA1_GENERATOR",
+      "pMax": 99999.0,
+      "pMin": 0.0,
+      "leadTime": 0.0,
+      "lagTime": 0.0,
+      "upwardPowerGradient": 150.0,
+      "downwardPowerGradient": -250.0
+    },
+    {
+      "generatorId": "RO_RA_00002_DDE1AA1_GENERATOR",
+      "pMax": 99999.0,
+      "pMin": 0.0,
+      "leadTime": 0.0,
+      "lagTime": 0.0,
+      "upwardPowerGradient": 150.0,
+      "downwardPowerGradient": -250.0
+    }
+  ]
+}
