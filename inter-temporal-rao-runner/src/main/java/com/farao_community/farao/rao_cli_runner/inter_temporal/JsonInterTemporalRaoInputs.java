@@ -40,24 +40,12 @@ public class JsonInterTemporalRaoInputs {
         return parametersFile;
     }
 
-    public void setParametersFile(String parametersFile) {
-        this.parametersFile = parametersFile;
-    }
-
     public String getIcsFile() {
         return icsFile;
     }
 
-    public void setIcsFile(String icsFile) {
-        this.icsFile = icsFile;
-    }
-
     public List<TimedInput> getTimedInputs() {
         return timedInputs;
-    }
-
-    public void setTimedInputs(List<TimedInput> timedInputs) {
-        this.timedInputs = timedInputs;
     }
 
     public String serializeToJson() throws JsonProcessingException {
@@ -72,47 +60,31 @@ public class JsonInterTemporalRaoInputs {
         return objectMapper.readValue(json, JsonInterTemporalRaoInputs.class);
     }
 
-
     public static class TimedInput {
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssXXX")
         private OffsetDateTime timestamp;
         private String networkFile;
         private String cracFile;
 
-        // Constructeur par défaut nécessaire pour la désérialisation
         public TimedInput() {
         }
 
-        // Constructeur avec paramètres
         public TimedInput(OffsetDateTime timestamp, String networkFile, String cracFile) {
             this.timestamp = timestamp;
             this.networkFile = networkFile;
             this.cracFile = cracFile;
         }
 
-        // Getters et Setters
         public OffsetDateTime getTimestamp() {
             return timestamp;
-        }
-
-        public void setTimestamp(OffsetDateTime timestamp) {
-            this.timestamp = timestamp;
         }
 
         public String getNetworkFile() {
             return networkFile;
         }
 
-        public void setNetworkFile(String networkFile) {
-            this.networkFile = networkFile;
-        }
-
         public String getCracFile() {
             return cracFile;
-        }
-
-        public void setCracFile(String cracFile) {
-            this.cracFile = cracFile;
         }
     }
 }

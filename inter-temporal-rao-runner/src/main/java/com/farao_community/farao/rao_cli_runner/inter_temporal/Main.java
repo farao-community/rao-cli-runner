@@ -46,6 +46,7 @@ public class Main {
             run(args);
         } catch (Exception e) {
             System.err.println(e.getMessage());
+            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -62,8 +63,8 @@ public class Main {
             throw new RuntimeException("TimedInputs is empty.");
         }
 
-        Map<OffsetDateTime, RaoInputWithNetworkPaths> timedInputMap = buildInputs(inputs);
         IntertemporalConstraints intertemporalConstraints = JsonIntertemporalConstraints.read(new FileInputStream(inputs.getIcsFile()));
+        Map<OffsetDateTime, RaoInputWithNetworkPaths> timedInputMap = buildInputs(inputs, intertemporalConstraints);
         InterTemporalRaoInputWithNetworkPaths raoInput = new InterTemporalRaoInputWithNetworkPaths(new TemporalDataImpl<>(timedInputMap), intertemporalConstraints);
         RaoParameters parameters = JsonRaoParameters.read(new FileInputStream(inputs.getParametersFile()));
         InterTemporalRaoResult result = InterTemporalRao.find(opts.algorithm.orElse(null)).run(raoInput, parameters);
@@ -71,14 +72,14 @@ public class Main {
         exportNetworksWithPras(opts.outputPath, result, raoInput);
     }
 
-    private static Map<OffsetDateTime, RaoInputWithNetworkPaths> buildInputs(JsonInterTemporalRaoInputs inputs) {
+    private static Map<OffsetDateTime, RaoInputWithNetworkPaths> buildInputs(JsonInterTemporalRaoInputs inputs, IntertemporalConstraints intertemporalConstraints) {
         Map<OffsetDateTime, RaoInputWithNetworkPaths> timedInputMap = new HashMap<>();
         inputs.getTimedInputs().stream().sorted(Comparator.comparing(JsonInterTemporalRaoInputs.TimedInput::getTimestamp))
             .forEach(timedInput -> {
                 Network network = Network.read(timedInput.getNetworkFile());
                 Crac crac = null;
                 if (timedInput.getCracFile() == null) {
-                    //crac = CracGenerator
+                    crac = CracGenerator.generateCrac(timedInput.getTimestamp(), network, intertemporalConstraints);
                 } else {
                     try {
                         CracCreationContext ccc = Crac.readWithContext(Path.of(timedInput.getCracFile()).getFileName().toString(),
@@ -94,7 +95,7 @@ public class Main {
                 }
                 // TODO fix this. should use timedInput.ts instead of crac.ts, but it is in UTC
 
-                timedInputMap.put(crac.getTimestamp().orElseThrow(),
+                timedInputMap.put(crac.getTimestamp().orElse(timedInput.getTimestamp()),
                     RaoInputWithNetworkPaths.build(timedInput.getNetworkFile(), timedInput.getNetworkFile(), crac).build());
             });
         return timedInputMap;
