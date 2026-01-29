@@ -77,18 +77,23 @@ public class Main {
             .forEach(timedInput -> {
                 Network network = Network.read(timedInput.getNetworkFile());
                 Crac crac = null;
-                try {
-                    CracCreationContext ccc = Crac.readWithContext(Path.of(timedInput.getCracFile()).getFileName().toString(),
-                        new FileInputStream(timedInput.getCracFile()),
-                        network
-                    );
-                    System.out.println(ccc.getCreationReport());
-                    crac = ccc.getCrac();
-                } catch (IOException e) {
-                    System.err.println("Could not read crac: " + e.getMessage());
-                    System.exit(1);
+                if (timedInput.getCracFile() == null) {
+                    //crac = CracGenerator
+                } else {
+                    try {
+                        CracCreationContext ccc = Crac.readWithContext(Path.of(timedInput.getCracFile()).getFileName().toString(),
+                            new FileInputStream(timedInput.getCracFile()),
+                            network
+                        );
+                        System.out.println(ccc.getCreationReport());
+                        crac = ccc.getCrac();
+                    } catch (IOException e) {
+                        System.err.println("Could not read crac: " + e.getMessage());
+                        System.exit(1);
+                    }
                 }
                 // TODO fix this. should use timedInput.ts instead of crac.ts, but it is in UTC
+
                 timedInputMap.put(crac.getTimestamp().orElseThrow(),
                     RaoInputWithNetworkPaths.build(timedInput.getNetworkFile(), timedInput.getNetworkFile(), crac).build());
             });
