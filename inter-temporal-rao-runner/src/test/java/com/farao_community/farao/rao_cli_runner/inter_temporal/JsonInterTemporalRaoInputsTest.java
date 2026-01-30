@@ -18,11 +18,11 @@ class JsonInterTemporalRaoInputsTest {
         assertEquals("ics.json", inputs.getIcsFile());
         assertEquals(2, inputs.getTimedInputs().size());
         JsonInterTemporalRaoInputs.TimedInput timedInput = inputs.getTimedInputs().get(0);
-        assertEquals(OffsetDateTime.of(2023, 10, 1, 12, 0, 0, 0, ZoneOffset.UTC), timedInput.getTimestamp());
+        assertEquals(OffsetDateTime.of(2023, 10, 1, 11, 0, 0, 0, ZoneOffset.UTC), timedInput.getTimestamp());
         assertEquals("network.xiidm", timedInput.getNetworkFile());
         assertEquals("crac.json", timedInput.getCracFile());
         timedInput = inputs.getTimedInputs().get(1);
-        assertEquals(OffsetDateTime.of(2023, 10, 1, 12, 15, 0, 0, ZoneOffset.UTC), timedInput.getTimestamp());
+        assertEquals(OffsetDateTime.of(2023, 10, 1, 11, 15, 0, 0, ZoneOffset.UTC), timedInput.getTimestamp());
         assertEquals("network2.xiidm", timedInput.getNetworkFile());
         assertEquals("crac2.json", timedInput.getCracFile());
     }

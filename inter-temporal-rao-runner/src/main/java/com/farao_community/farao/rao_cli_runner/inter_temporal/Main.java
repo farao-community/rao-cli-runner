@@ -1,7 +1,9 @@
 package com.farao_community.farao.rao_cli_runner.inter_temporal;
 
 import com.powsybl.iidm.network.Generator;
+import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.openrao.commons.TemporalDataImpl;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.CracCreationContext;
@@ -30,17 +32,6 @@ import org.apache.commons.io.FileUtils;
 
 public class Main {
 
-    private record CommandLineOptions(String inputsJsonFilePath, String outputPath, Optional<String> algorithm) {
-
-    }
-
-    public static final String CMD_LINE_SYNTAX = "java -jar your.jar"; // TODO
-    public static final String ALGORITHM_OPT = "algorithm";
-    public static final String HELP_OPT = "help";
-    public static final String INPUTS_OPT = "inputs";
-    public static final String OUTPUT_OPT = "output";
-
-
     public static void main(String[] args) {
         try {
             run(args);
@@ -52,8 +43,8 @@ public class Main {
     }
 
     private static void run(String[] args) throws IOException {
-        CommandLineOptions opts = parseCommandLineOptions(args);
-        JsonInterTemporalRaoInputs inputs = JsonInterTemporalRaoInputs.read(opts.inputsJsonFilePath);
+        CommandLineOptions opts = CommandLineHelper.parseCommandLineOptions(args);
+        JsonInterTemporalRaoInputs inputs = JsonInterTemporalRaoInputs.read(opts.inputsJsonFilePath());
 
         if (inputs == null) {
             throw new RuntimeException("Input files could not be read.");
@@ -64,22 +55,31 @@ public class Main {
         }
 
         IntertemporalConstraints intertemporalConstraints = JsonIntertemporalConstraints.read(new FileInputStream(inputs.getIcsFile()));
-        Map<OffsetDateTime, RaoInputWithNetworkPaths> timedInputMap = buildInputs(inputs, intertemporalConstraints);
+        Map<OffsetDateTime, RaoInputWithNetworkPaths> timedInputMap = buildInputs(inputs, intertemporalConstraints, opts.outputPath());
         InterTemporalRaoInputWithNetworkPaths raoInput = new InterTemporalRaoInputWithNetworkPaths(new TemporalDataImpl<>(timedInputMap), intertemporalConstraints);
         RaoParameters parameters = JsonRaoParameters.read(new FileInputStream(inputs.getParametersFile()));
-        InterTemporalRaoResult result = InterTemporalRao.find(opts.algorithm.orElse(null)).run(raoInput, parameters);
-        writeRaoResultsZip(opts.outputPath, result, raoInput);
-        exportNetworksWithPras(opts.outputPath, result, raoInput);
+        InterTemporalRaoResult result = InterTemporalRao.find(opts.algorithm().orElse(null)).run(raoInput, parameters);
+        writeRaoResultsZip(opts.outputPath(), result, raoInput);
+        exportNetworksWithPras(opts.outputPath(), result, raoInput);
     }
 
-    private static Map<OffsetDateTime, RaoInputWithNetworkPaths> buildInputs(JsonInterTemporalRaoInputs inputs, IntertemporalConstraints intertemporalConstraints) {
+    private static Map<OffsetDateTime, RaoInputWithNetworkPaths> buildInputs(JsonInterTemporalRaoInputs inputs, IntertemporalConstraints intertemporalConstraints, String outputPath) {
         Map<OffsetDateTime, RaoInputWithNetworkPaths> timedInputMap = new HashMap<>();
         inputs.getTimedInputs().stream().sorted(Comparator.comparing(JsonInterTemporalRaoInputs.TimedInput::getTimestamp))
             .forEach(timedInput -> {
                 Network network = Network.read(timedInput.getNetworkFile());
+                //preprocess(network);
+                //network.write("XIIDM", new Properties(), "/tmp", "preprocessed_" + Path.of(timedInput.getNetworkFile()).getFileName().toString());
+                //String preprocessedNetworkFile = "/tmp/preprocessed_" + Path.of(timedInput.getNetworkFile()).getFileName().toString() + ".xiidm";
                 Crac crac = null;
                 if (timedInput.getCracFile() == null) {
                     crac = CracGenerator.generateCrac(timedInput.getTimestamp(), network, intertemporalConstraints);
+                    try {
+                        OutputStream os = new FileOutputStream(new File(outputPath, "generated_crac_" + timedInput.getTimestamp() + ".json"));
+                        crac.write("JSON", os);
+                    } catch (FileNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
                 } else {
                     try {
                         CracCreationContext ccc = Crac.readWithContext(Path.of(timedInput.getCracFile()).getFileName().toString(),
@@ -95,10 +95,19 @@ public class Main {
                 }
                 // TODO fix this. should use timedInput.ts instead of crac.ts, but it is in UTC
 
-                timedInputMap.put(crac.getTimestamp().orElse(timedInput.getTimestamp()),
+                timedInputMap.put(crac.getTimestamp().orElseThrow(),
                     RaoInputWithNetworkPaths.build(timedInput.getNetworkFile(), timedInput.getNetworkFile(), crac).build());
             });
         return timedInputMap;
+    }
+
+    private static void preprocess(Network network) {
+        for (HvdcLine hvdcLine : network.getHvdcLines()) {
+            if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class) != null && hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class).isEnabled()) {
+                System.out.println(hvdcLine.getId() + " : deactivating AC emulation");
+                hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class).setEnabled(false);
+            }
+        }
     }
 
     private static void writeRaoResultsZip(String outputPath, InterTemporalRaoResult result, InterTemporalRaoInputWithNetworkPaths raoInput) throws IOException {
@@ -119,7 +128,6 @@ public class Main {
         for (OffsetDateTime offsetDateTime : result.getTimestamps()) {
             Set<NetworkAction> preventiveNetworkActions = result.getIndividualRaoResult(offsetDateTime).getActivatedNetworkActionsDuringState(raoInput.getRaoInputs().getData(offsetDateTime).get().getCrac().getPreventiveState());
             Set<RangeAction<?>> preventiveRangeActions = result.getIndividualRaoResult(offsetDateTime).getActivatedRangeActionsDuringState(raoInput.getRaoInputs().getData(offsetDateTime).get().getCrac().getPreventiveState());
-            Network modifiedNetwork = Network.read(raoInput.getRaoInputs().getData(offsetDateTime).orElseThrow().getPostIcsImportNetworkPath());
             Network initialNetwork = Network.read(raoInput.getRaoInputs().getData(offsetDateTime).orElseThrow().getInitialNetworkPath());
 
             // Apply PRAs on modified network
@@ -161,61 +169,5 @@ public class Main {
             generator.setTargetP(generator.getTargetP()
                 + (optimizedSetpoint - initialSetpoint) * injectionRangeAction.getInjectionDistributionKeys().get(networkElement));
         }
-    }
-
-    private static Options buildCommandLineOptions() {
-        Options options = new Options();
-        Option helpOption = new Option(HELP_OPT.substring(0, 1), HELP_OPT, false, "Print this help message");
-        options.addOption(helpOption);
-
-        Option inputsOption = new Option(INPUTS_OPT.substring(0, 1), INPUTS_OPT, true, "Path to the inputs JSON file");
-        inputsOption.setRequired(true);
-        options.addOption(inputsOption);
-
-        Option outputOption = new Option(OUTPUT_OPT.substring(0, 1), OUTPUT_OPT, true, "Path to the desired output directory");
-        outputOption.setRequired(true);
-        options.addOption(outputOption);
-
-        Option algorithmOption = new Option(ALGORITHM_OPT.substring(0, 1), ALGORITHM_OPT, true, "InterTemporalRao implementation name (optional)");
-        algorithmOption.setRequired(false);
-        options.addOption(algorithmOption);
-        return options;
-    }
-
-    private static CommandLineOptions parseCommandLineOptions(String[] args) {
-        Options options = buildCommandLineOptions();
-
-        CommandLineParser parser = new MyCommandLineParser(HELP_OPT);
-        // TODO replace with org.apache.commons.cli.help.HelpFormatter
-        HelpFormatter formatter = new HelpFormatter();
-        CommandLine cmd = null;
-
-        try {
-            cmd = parser.parse(options, args);
-        } catch (ParseException e) {
-            formatter.printHelp(CMD_LINE_SYNTAX, options);
-            System.out.println(e.getMessage());
-            System.exit(1);
-        }
-
-        if (cmd.hasOption(HELP_OPT)) {
-            formatter.printHelp(CMD_LINE_SYNTAX, options);
-            System.exit(0);
-        }
-
-        String inputsFilePath = cmd.getOptionValue(INPUTS_OPT);
-        String outputPath = cmd.getOptionValue(OUTPUT_OPT);
-
-        Optional<String> algorithm = Optional.empty();
-        if (cmd.hasOption(ALGORITHM_OPT)) {
-            algorithm = Optional.of(cmd.getOptionValue(ALGORITHM_OPT));
-        }
-
-        if (inputsFilePath == null) {
-            System.err.println("You must define --inputs. Use --help for extra information.");
-            System.exit(1);
-        }
-
-        return new CommandLineOptions(inputsFilePath, outputPath, algorithm);
     }
 }

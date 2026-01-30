@@ -30,7 +30,7 @@
                             <transformers>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.farao_community.farao.cli_rao_runner.Main</mainClass>
+                                    <mainClass>com.farao_community.farao.rao_cli_runner.inter_temporal.Main</mainClass>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>

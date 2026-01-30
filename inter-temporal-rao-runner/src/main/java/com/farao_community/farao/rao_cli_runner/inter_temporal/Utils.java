@@ -20,4 +20,16 @@ public class Utils {
         // TODO allow activating / deactivating this filter
         // return terminalIsInCountry(branch.getTerminal1(), country) || terminalIsInCountry(branch.getTerminal2(), country);
     }
+
+    public static boolean generatorIsInCountry(Generator generator, Country country) {
+        Optional<Substation> substationOptional = generator.getTerminal().getVoltageLevel().getSubstation();
+        if (substationOptional.isEmpty()) {
+            return false;
+        }
+        Substation substation = substationOptional.get();
+        if (substation.getCountry().isEmpty()) {
+            return false;
+        }
+        return substation.getCountry().get().equals(country);
+    }
 }
