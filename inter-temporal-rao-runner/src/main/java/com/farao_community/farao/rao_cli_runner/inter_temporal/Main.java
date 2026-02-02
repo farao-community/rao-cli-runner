@@ -73,7 +73,10 @@ public class Main {
                 //String preprocessedNetworkFile = "/tmp/preprocessed_" + Path.of(timedInput.getNetworkFile()).getFileName().toString() + ".xiidm";
                 Crac crac = null;
                 if (timedInput.getCracFile() == null) {
-                    crac = CracGenerator.generateCrac(timedInput.getTimestamp(), network, intertemporalConstraints);
+                    if (inputs.getCracGeneratorParameters() == null) {
+                        throw new RuntimeException("Crac or Crac generator parameters must be defined in input json.");
+                    }
+                    crac = new CracGenerator(inputs.getCracGeneratorParameters()).generateCrac(timedInput.getTimestamp(), network, intertemporalConstraints);
                     try {
                         OutputStream os = new FileOutputStream(new File(outputPath, "generated_crac_" + timedInput.getTimestamp() + ".json"));
                         crac.write("JSON", os);

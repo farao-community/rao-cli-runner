@@ -1,5 +1,4 @@
 package com.farao_community.farao.rao_cli_runner.inter_temporal;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,6 +15,7 @@ public class JsonInterTemporalRaoInputs {
     private String parametersFile;
     private String icsFile;
     private List<TimedInput> timedInputs;
+    private CracGeneratorParameters cracGeneratorParameters;
 
     public JsonInterTemporalRaoInputs() {
         // used for deserialization
@@ -30,10 +30,11 @@ public class JsonInterTemporalRaoInputs {
         return read(Paths.get(filePath));
     }
 
-    public JsonInterTemporalRaoInputs(String parametersFile, String icsFile, List<TimedInput> timedInputs) {
+    public JsonInterTemporalRaoInputs(String parametersFile, String icsFile, List<TimedInput> timedInputs, CracGeneratorParameters cracGeneratorParameters) {
         this.parametersFile = parametersFile;
         this.icsFile = icsFile;
         this.timedInputs = timedInputs;
+        this.cracGeneratorParameters = cracGeneratorParameters;
     }
 
     public String getParametersFile() {
@@ -46,6 +47,10 @@ public class JsonInterTemporalRaoInputs {
 
     public List<TimedInput> getTimedInputs() {
         return timedInputs;
+    }
+
+    public CracGeneratorParameters getCracGeneratorParameters() {
+        return cracGeneratorParameters;
     }
 
     public String serializeToJson() throws JsonProcessingException {

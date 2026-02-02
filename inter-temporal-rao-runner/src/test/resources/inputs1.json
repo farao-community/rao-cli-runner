@@ -12,5 +12,24 @@
       "networkFile": "network2.xiidm",
       "cracFile": "crac2.json"
     }
-  ]
+  ],
+  "cracGeneratorParameters": {
+    "branchMaxVoltage": 400,
+    "branchMinVoltage": 200,
+    "branchFilter": [
+      "FR"
+    ],
+    "prevCapacityCoef": 0.95,
+    "rdFilter": [
+      "BE"
+    ],
+    "ctFilter": [
+      "CH",
+      "DE",
+      "IT"
+    ],
+    "ctHome": "ES",
+    "rdOnAllGenerators": false,
+    "addBalancingAction": true
+  }
 }

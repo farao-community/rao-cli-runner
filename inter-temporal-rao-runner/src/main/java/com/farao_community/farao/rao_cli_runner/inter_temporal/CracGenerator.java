@@ -16,41 +16,40 @@ import com.powsybl.openrao.data.intertemporalconstraints.IntertemporalConstraint
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class CracGenerator {
     // TODO move to commons module
+    final CracGeneratorParameters parameters;
 
-    // TODO : put the following in parameters
-    static final int MIN_VL = 200;
-    static final Country COUNTRY = Country.FR;
-    static final double PREV_CAPACITY_COEF = 1.0;
-    static final List<Country> countriesForCt = List.of(Country.CH, Country.ES, Country.DE, Country.IT);
+    private static final String PREVENTIVE_INSTANT_ID = "preventive";
+    private static final String OUTAGE_INSTANT_ID = "outage";
+    private static final String CURATIVE_INSTANT_ID = "curative";
 
-    static final String PREVENTIVE_INSTANT_ID = "preventive";
-    static final String OUTAGE_INSTANT_ID = "outage";
-    static final String CURATIVE_INSTANT_ID = "curative";
-
-    private CracGenerator() {
-        // should not be used
+    public CracGenerator(CracGeneratorParameters parameters) {
+        this.parameters = parameters;
     }
 
-    public static Crac generateCrac(OffsetDateTime timestamp, Network network, IntertemporalConstraints intertemporalConstraints) {
+    public Crac generateCrac(OffsetDateTime timestamp, Network network, IntertemporalConstraints intertemporalConstraints) {
         Crac crac = CracFactory.findDefault().create("crac", "crac", timestamp);
         addInstants(crac);
         addPreventiveCnecs(crac, network);
-        // TODO add curative CNECs
-        addRedispatchActions(network, intertemporalConstraints, crac);
-        //addRedispatchActionsOnAllGenerators(network, crac);
+        // TODO add outage & curative CNECs
+        if (parameters.isRdOnAllGenerators()) {
+            addRedispatchActionsOnAllGenerators(network, crac);
+        } else {
+            addRdActionsFromInterTemporalCts(network, intertemporalConstraints, crac);
+        }
         addCtActions(crac, network);
-        //addBalancingAction(crac, network);
+        if (parameters.isAddBalancingAction()) {
+            addBalancingAction(crac, network);
+        }
         return crac;
     }
 
-    private static void addRedispatchActions(Network network, IntertemporalConstraints intertemporalConstraints, Crac crac) {
+    private static void addRdActionsFromInterTemporalCts(Network network, IntertemporalConstraints intertemporalConstraints, Crac crac) {
         intertemporalConstraints.getGeneratorConstraints().forEach(ct -> {
             Generator generator = network.getGenerator(ct.getGeneratorId());
             if (generator == null) {
@@ -75,10 +74,10 @@ public class CracGenerator {
         });
     }
 
-    private static void addRedispatchActionsOnAllGenerators(Network network, Crac crac) {
+    private void addRedispatchActionsOnAllGenerators(Network network, Crac crac) {
         for (Generator generator : network.getGenerators()) {
             double initialP = Math.round(generator.getTargetP()); // TODO round it in network too
-            if (initialP < 300 || !Utils.generatorIsInCountry(generator, COUNTRY)) {
+            if (initialP < 300 || !Utils.generatorIsInCountries(generator, parameters.getRdFilter())) {
                 continue;
             }
             crac.newInjectionRangeAction()
@@ -99,11 +98,11 @@ public class CracGenerator {
     }
 
 
-    private static void addCtActions(Crac crac, Network network) {
-        countriesForCt.forEach(country -> {
-            if (!country.equals(Country.FR)) {
+    private void addCtActions(Crac crac, Network network) {
+        parameters.getCtFilter().forEach(country -> {
+            if (!country.equals(parameters.getCtHome())) {
                 Set<Generator> consideredGenerators = network.getGeneratorStream()
-                    .filter(generator -> Utils.generatorIsInCountry(generator, country))
+                    .filter(generator -> Utils.generatorIsInCountries(generator, Set.of(country)))
                     .filter(generator -> generator.getTargetP() >= 25.)
                     .collect(Collectors.toSet());
 
@@ -142,14 +141,13 @@ public class CracGenerator {
             .newInstant(CURATIVE_INSTANT_ID, InstantKind.CURATIVE);
     }
 
-    private static void addPreventiveCnecs(Crac crac, Network network) {
+    private void addPreventiveCnecs(Crac crac, Network network) {
         // TODO consider implementing REBALANCED_DC
-        // TODO allow deactivating country filter by putting null
         network.getBranchStream()
-            .filter(branch -> Utils.branchIsInCountry(branch, COUNTRY) && Utils.branchHasHighEnoughTargetV(branch, MIN_VL))
+            .filter(branch -> Utils.branchIsInCountries(branch, parameters.getBranchFilter()) && Utils.branchIsInVRange(branch, parameters.getBranchMinVoltage(), parameters.getBranchMaxVoltage()))
             .forEach(branch -> {
                 if (branch.getSelectedOperationalLimitsGroup1().isPresent()) {
-                    double limit = PREV_CAPACITY_COEF * ((OperationalLimitsGroup) branch.getSelectedOperationalLimitsGroup1().get())
+                    double limit = parameters.getPrevCapacityCoef() * ((OperationalLimitsGroup) branch.getSelectedOperationalLimitsGroup1().get())
                         .getCurrentLimits().get().getPermanentLimit();
 
                     if (limit < 100. || Double.isNaN(limit)) {
@@ -176,13 +174,13 @@ public class CracGenerator {
             });
     }
 
-    private static void addBalancingAction(Crac crac, Network network) {
+    private void addBalancingAction(Crac crac, Network network) {
         Set<String> generatorsWithRedispatching = crac.getInjectionRangeActions().stream().map(RemedialAction::getNetworkElements).flatMap(Collection::stream)
             .map(Identifiable::getId).collect(Collectors.toSet());
         final double[] s = {0.};
         Set<Generator> generators = new HashSet<>();
         network.getGenerators().forEach(generator -> {
-            if (Utils.generatorIsInCountry(generator, Country.FR)
+            if (Utils.generatorIsInCountries(generator, parameters.getRdFilter())
                 && generator.getTargetP() > 100.
                 && !generatorsWithRedispatching.contains(generator.getId())) {
                 generators.add(generator);

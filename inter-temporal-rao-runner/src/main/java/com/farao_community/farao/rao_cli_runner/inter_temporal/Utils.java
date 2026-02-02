@@ -3,25 +3,29 @@ package com.farao_community.farao.rao_cli_runner.inter_temporal;
 import com.powsybl.iidm.network.*;
 
 import java.util.Optional;
+import java.util.Set;
 
 public class Utils {
 
-    public static boolean branchHasHighEnoughTargetV(Branch<?> branch, double minV) {
-        return branch.getTerminal1().getVoltageLevel().getNominalV() > minV && branch.getTerminal2().getVoltageLevel().getNominalV() > minV;
+    public static boolean branchIsInVRange(Branch<?> branch, double minV, double maxV) {
+        return branch.getTerminal1().getVoltageLevel().getNominalV() >= minV && branch.getTerminal1().getVoltageLevel().getNominalV() <= maxV
+            && branch.getTerminal2().getVoltageLevel().getNominalV() >= minV && branch.getTerminal2().getVoltageLevel().getNominalV() <= maxV;
     }
 
-    public static boolean terminalIsInCountry(Terminal terminal, Country country) {
+    public static boolean terminalIsInCountries(Terminal terminal, Set<Country> countries) {
         Optional<Substation> optionalSubstation = terminal.getVoltageLevel().getSubstation();
-        return optionalSubstation.isPresent() && optionalSubstation.get().getCountry().isPresent() && optionalSubstation.get().getCountry().get().equals(country);
+        return optionalSubstation.isPresent() && optionalSubstation.get().getCountry().isPresent() &&
+            countries.contains(optionalSubstation.get().getCountry().get());
     }
 
-    public static boolean branchIsInCountry(Branch<?> branch, Country country) {
-        return true;
-        // TODO allow activating / deactivating this filter
-        // return terminalIsInCountry(branch.getTerminal1(), country) || terminalIsInCountry(branch.getTerminal2(), country);
+    public static boolean branchIsInCountries(Branch<?> branch, Set<Country> countries) {
+        if (countries == null) {
+            return true;
+        }
+        return terminalIsInCountries(branch.getTerminal1(), countries) || terminalIsInCountries(branch.getTerminal2(), countries);
     }
 
-    public static boolean generatorIsInCountry(Generator generator, Country country) {
+    public static boolean generatorIsInCountries(Generator generator, Set<Country> countries) {
         Optional<Substation> substationOptional = generator.getTerminal().getVoltageLevel().getSubstation();
         if (substationOptional.isEmpty()) {
             return false;
@@ -30,6 +34,6 @@ public class Utils {
         if (substation.getCountry().isEmpty()) {
             return false;
         }
-        return substation.getCountry().get().equals(country);
+        return countries.contains(substation.getCountry().get());
     }
 }
