@@ -30,6 +30,19 @@
     ],
     "ctHome": "ES",
     "rdOnAllGenerators": false,
-    "addBalancingAction": true
+    "addBalancingAction": true,
+    "rdActivationCost": 100,
+    "rdUpVariationCost": 1,
+    "rdDownVariationCost": 1,
+    "ctActivationCost": 1000,
+    "ctUpVariationCost": 10,
+    "ctDownVariationCost": 10,
+    "ctMinMw": -1500,
+    "ctMaxMw": 1500,
+    "balacingActivationCost": 0,
+    "balancingUpVariationCost": 1000,
+    "balancingDownVariationCost": 1000,
+    "balancingMinMw": -1000,
+    "balancingMaxMw": 1000
   }
 }

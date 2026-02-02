@@ -38,5 +38,18 @@ class JsonInterTemporalRaoInputsTest {
         assertEquals(Country.ES, cracGeneratorParameters.getCtHome());
         assertFalse(cracGeneratorParameters.isRdOnAllGenerators());
         assertTrue(cracGeneratorParameters.isAddBalancingAction());
+        assertEquals(100, cracGeneratorParameters.getRdActivationCost());
+        assertEquals(1, cracGeneratorParameters.getRdUpVariationCost());
+        assertEquals(1, cracGeneratorParameters.getRdDownVariationCost());
+        assertEquals(1000, cracGeneratorParameters.getCtActivationCost());
+        assertEquals(10, cracGeneratorParameters.getCtUpVariationCost());
+        assertEquals(10, cracGeneratorParameters.getCtDownVariationCost());
+        assertEquals(-1500, cracGeneratorParameters.getCtMinMw());
+        assertEquals(1500, cracGeneratorParameters.getCtMaxMw());
+        assertEquals(0, cracGeneratorParameters.getBalacingActivationCost());
+        assertEquals(1000, cracGeneratorParameters.getBalancingUpVariationCost());
+        assertEquals(1000, cracGeneratorParameters.getBalancingDownVariationCost());
+        assertEquals(-1000, cracGeneratorParameters.getBalancingMinMw());
+        assertEquals(1000, cracGeneratorParameters.getBalancingMaxMw());
     }
 }

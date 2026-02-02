@@ -49,7 +49,7 @@ public class CracGenerator {
         return crac;
     }
 
-    private static void addRdActionsFromInterTemporalCts(Network network, IntertemporalConstraints intertemporalConstraints, Crac crac) {
+    private void addRdActionsFromInterTemporalCts(Network network, IntertemporalConstraints intertemporalConstraints, Crac crac) {
         intertemporalConstraints.getGeneratorConstraints().forEach(ct -> {
             Generator generator = network.getGenerator(ct.getGeneratorId());
             if (generator == null) {
@@ -65,9 +65,9 @@ public class CracGenerator {
                 .withMax(Math.max(generator.getMaxP(), generator.getTargetP())).add()
                 .newOnInstantUsageRule().withInstant(PREVENTIVE_INSTANT_ID).add()
                 .withInitialSetpoint(initialP)
-                .withVariationCost(1., VariationDirection.DOWN)
-                .withVariationCost(1., VariationDirection.UP)
-                .withActivationCost(100.)
+                .withVariationCost(parameters.getRdDownVariationCost(), VariationDirection.DOWN)
+                .withVariationCost(parameters.getRdUpVariationCost(), VariationDirection.UP)
+                .withActivationCost(parameters.getRdActivationCost())
                 .add();
             // connect the generator
             generator.connect(SwitchPredicates.IS_OPEN);
@@ -88,9 +88,9 @@ public class CracGenerator {
                 .withMax(Math.max(generator.getMaxP(), generator.getTargetP())).add()
                 .newOnInstantUsageRule().withInstant(PREVENTIVE_INSTANT_ID).add()
                 .withInitialSetpoint(initialP)
-                .withVariationCost(1., VariationDirection.DOWN)
-                .withVariationCost(1., VariationDirection.UP)
-                .withActivationCost(100.)
+                .withVariationCost(parameters.getRdUpVariationCost(), VariationDirection.DOWN)
+                .withVariationCost(parameters.getRdDownVariationCost(), VariationDirection.UP)
+                .withActivationCost(parameters.getRdActivationCost())
                 .add();
             // connect the generator
             generator.connect(SwitchPredicates.IS_OPEN);
@@ -112,13 +112,13 @@ public class CracGenerator {
                 InjectionRangeActionAdder injectionRangeActionAdder = crac.newInjectionRangeAction()
                     .withId("CT_" + country.getName())
                     .newRange()
-                    .withMin(initialTotalP - 1500.)
-                    .withMax(initialTotalP + 1500.)
+                    .withMin(initialTotalP + parameters.getCtMinMw())
+                    .withMax(initialTotalP + parameters.getCtMaxMw())
                     .add()
                     .withInitialSetpoint(initialTotalP)
-                    .withVariationCost(10., VariationDirection.DOWN)
-                    .withVariationCost(10., VariationDirection.UP)
-                    .withActivationCost(1000.)
+                    .withVariationCost(parameters.getCtDownVariationCost(), VariationDirection.DOWN)
+                    .withVariationCost(parameters.getCtUpVariationCost(), VariationDirection.UP)
+                    .withActivationCost(parameters.getCtActivationCost())
                     .newOnInstantUsageRule().withInstant(PREVENTIVE_INSTANT_ID).add();
 
                 AtomicReference<Double> s = new AtomicReference<>((double) 0);
@@ -190,14 +190,15 @@ public class CracGenerator {
         InjectionRangeActionAdder injectionRangeActionAdder = crac.newInjectionRangeAction()
             .withId("BALANCING")
             .withInitialSetpoint(s[0])
-            .withVariationCost(1000., VariationDirection.UP)
-            .withVariationCost(1000., VariationDirection.DOWN)
+            .withVariationCost(parameters.getBalancingUpVariationCost(), VariationDirection.UP)
+            .withVariationCost(parameters.getBalancingDownVariationCost(), VariationDirection.DOWN)
+            .withActivationCost(parameters.getBalacingActivationCost())
             .newOnInstantUsageRule()
             .withInstant(PREVENTIVE_INSTANT_ID)
             .add()
             .newRange()
-            .withMin(s[0] - 1000.)
-            .withMax(s[0] + 1000.)
+            .withMin(s[0] + parameters.getBalancingMinMw())
+            .withMax(s[0] + parameters.getBalancingMaxMw())
             .add();
 
         generators.forEach(generator -> injectionRangeActionAdder.withNetworkElementAndKey(generator.getTargetP() / s[0], generator.getId()));
