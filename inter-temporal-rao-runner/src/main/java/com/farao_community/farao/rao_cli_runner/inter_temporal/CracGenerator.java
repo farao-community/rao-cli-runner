@@ -11,6 +11,7 @@ import com.powsybl.openrao.data.crac.api.RemedialAction;
 import com.powsybl.openrao.data.crac.api.cnec.FlowCnecAdder;
 import com.powsybl.openrao.data.crac.api.rangeaction.InjectionRangeActionAdder;
 import com.powsybl.openrao.data.crac.api.rangeaction.VariationDirection;
+import com.powsybl.openrao.data.crac.impl.CracImplFactory;
 import com.powsybl.openrao.data.intertemporalconstraints.IntertemporalConstraints;
 
 import java.time.OffsetDateTime;
@@ -33,7 +34,7 @@ public class CracGenerator {
     }
 
     public Crac generateCrac(OffsetDateTime timestamp, Network network, IntertemporalConstraints intertemporalConstraints) {
-        Crac crac = CracFactory.find("CracImplFactory").create("crac", "crac", timestamp);
+        Crac crac = new CracImplFactory().create("crac", "crac", timestamp);
         addInstants(crac);
         addPreventiveCnecs(crac, network);
         // TODO add outage & curative CNECs
