@@ -19,7 +19,7 @@
     </developers>
 
     <modules>
-        <module>inter-temporal</module>
+        <module>inter-temporal-rao-runner</module>
     </modules>
 
     <properties>

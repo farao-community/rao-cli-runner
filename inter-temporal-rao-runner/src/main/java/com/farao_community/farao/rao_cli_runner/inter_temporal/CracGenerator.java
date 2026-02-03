@@ -33,7 +33,7 @@ public class CracGenerator {
     }
 
     public Crac generateCrac(OffsetDateTime timestamp, Network network, IntertemporalConstraints intertemporalConstraints) {
-        Crac crac = CracFactory.findDefault().create("crac", "crac", timestamp);
+        Crac crac = CracFactory.find("CracImplFactory").create("crac", "crac", timestamp);
         addInstants(crac);
         addPreventiveCnecs(crac, network);
         // TODO add outage & curative CNECs
