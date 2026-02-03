@@ -26,6 +26,9 @@ public class Utils {
     }
 
     public static boolean generatorIsInCountries(Generator generator, Set<Country> countries) {
+        if (countries == null) {
+            return true;
+        }
         Optional<Substation> substationOptional = generator.getTerminal().getVoltageLevel().getSubstation();
         if (substationOptional.isEmpty()) {
             return false;

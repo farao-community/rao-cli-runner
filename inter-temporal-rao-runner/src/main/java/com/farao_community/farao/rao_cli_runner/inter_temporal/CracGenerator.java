@@ -43,7 +43,9 @@ public class CracGenerator {
         } else {
             addRdActionsFromInterTemporalCts(network, intertemporalConstraints, crac);
         }
-        addCtActions(crac, network);
+        if (parameters.getCtHome() != null) {
+            addCtActions(crac, network);
+        }
         if (parameters.isAddBalancingAction()) {
             addBalancingAction(crac, network);
         }
